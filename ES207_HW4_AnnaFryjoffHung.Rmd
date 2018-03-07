@@ -1,0 +1,200 @@
+---
+title: "ES207 HW4 Anna Fryjoff-Hung"
+output: html_notebook
+---
+
+#####1. Complete the tutorial steps for Strings from Chapter 14 in your R for Data Science text book http://r4ds.had.co.nz/strings.html. Answer all of the exercise questions in Chapter 14. Turn in your responses as R notebook file (.html) as a commit to your GitHub page. Turn in all of your functions as separate function (.R) files with intelligible titles as a commit to your GitHub page.
+
+```{r "setup", include=FALSE}
+require("knitr")
+opts_knit$set(root.dir = "C:/Users/Anna/Box Sync/Spring 2018/ES207/HW/Class Data/CA_Ozone")
+```
+
+```{r}
+#Required libraries
+library(tidyverse)
+require(readr)
+library(data.table)
+library(readxl)
+
+```
+
+
+```{r}
+library(tidyverse)
+require(readr)
+#setwd("datasets/data_prep/ca_ozone")
+o3.filenames <- list.files(pattern = ".txt")
+o3.filelist <- lapply(o3.filenames, read_delim, delim = "|")
+names(o3.filelist) <- gsub(".txt","", o3.filenames)
+```
+
+#####2. What class is o3.filelist? What does it contain?
+
+```{r}
+class(o3.filelist)
+```
+o3.filelist is a list that contains tibbles
+
+#####3. Using ~ 1 sentence per line in the above code, explain what each line in the code is doing.
+
+o3.filenames <- list.files(pattern = ".txt")
+- Lists the files in the working directory that match the pattern argument, in this case, .txt files. 
+
+o3.filelist <- lapply(o3.filenames, read_delim, delim = "|")
+- Applies the function read_delim (reach reads a delimited file into a tibble), using the delimiter "|" as the field seperator, over the list created in the previous line of code.  
+
+names(o3.filelist) <- gsub(".txt","", o3.filenames)
+- Names the items in o3.filelist with the o3.filenames.  gsub replaces the .txt with "" for all the matches.
+
+#####4. Rewrite the code above using the stringr package insead of grep{base}.
+
+```{r}
+o3.filenames2 <- list.files(pattern = ".txt")
+o3.filelist2 <- lapply(o3.filenames2, read_delim, delim = "|")
+names(o3.filelist2) <- str_replace_all(o3.filenames2,".txt","")
+```
+
+```{r}
+identical(o3.filelist, o3.filelist2)
+```
+
+
+```{r}
+library(data.table)
+library(tidyverse)
+daily <- o3.filelist %>%
+  rbindlist() %>%
+  group_by(site = as.factor(site), date) %>%
+  summarize(o3 = mean(obs, na.rm = TRUE))
+daily
+```
+
+
+#####5. Rewrite the code above using traditional object-based R programming instead of the piping operator.
+
+```{r}
+o3rbind <- rbindlist(o3.filelist)
+o3group <- group_by(o3rbind, site = as.factor(site), date)
+o3summary <- summarize(o3group, o3 = mean(obs, na.rm = TRUE))
+
+```
+
+```{r}
+identical(daily, o3summary)
+```
+
+
+#####6. Summarize the o3 data above by site and by month and by year using a piping operator (the monthly mean o3 for each site for each year).
+
+```{r}
+monthly <- o3.filelist %>%
+  rbindlist() %>%
+  mutate(month = format(date,"%m"), year = format(date,"%Y")) %>%
+  group_by(site = as.factor(site), month, year) %>%
+  summarize(o3 = mean(obs, na.rm = TRUE))
+monthly
+
+```
+
+
+#####7. Challenge! Ozone pollution actually follows a very strong diurnal pattern. How would you summarize the daily data from above in a better way to capture that diurnal pattern?
+
+```{r}
+diurnal <- o3.filelist %>%
+  rbindlist() %>%
+  group_by(start_hour) %>%
+  summarize(o3 = mean(obs, na.rm = TRUE))
+ggplot(data=diurnal)+
+  geom_point(mapping = aes(x = start_hour, y= o3))+
+  scale_x_continuous(breaks=diurnal$start_hour)+
+  ggtitle("Average Diurnal Ozone Concentrations in California 1980-2011")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  labs(x = "Hour", y = "Ozone Concentration")
+```
+
+
+```{r}
+library(tidyverse)
+library(readxl)
+loc <- read_excel("C:/Users/Anna/Box Sync/Spring 2018/ES207/HW/Class Data/CA_Ozone/location.xls")
+colnames(loc)[1] <- "site"
+loc
+```
+
+#####8. How many site names in the CA air quality location dataset “Site Name” contain “San” or “Santa?”.
+
+There are 95 sites in the dataset that contain "San" or "Santa"
+
+```{r}
+
+san_filter <- c("San", "Santa")
+san_match <- str_c("\\b(", str_c(san_filter, collapse = "|"), ")\\b")
+san_loc <- loc$`Site Name`[str_count(loc$`Site Name`, san_match)>=1]
+length(san_loc)
+str_view_all(san_loc,san_match)
+```
+
+
+#####9. Identify the number of sites that do not have a complete address (full street address and zip code).
+
+```{r}
+sum(is.na(loc$Address))
+sum(is.na(loc$`Zip Code`))
+length(unique(loc[is.na(loc$Address) | is.na(loc$`Zip Code`),]$Site))
+```
+
+
+#####10. How does a semi join differ from an inner join?
+
+An inner join will return all combinations of the matches between x and y, returning one row of x for each matching row of y. A semi-join does not duplicate rows of x
+
+
+
+```{r}
+colnames(loc)[1] <- "site"
+daily.site <- daily %>%
+  left_join(loc, by = "site")
+daily.site
+```
+
+
+#####11. Write a function to calculate the annual mean, median, max and min of all sites that have “San” or “Santa” in their name.
+
+
+
+```{r}
+annual_stats <- function(x,y,z){
+  yearly.site <- x %>%
+    rbindlist() %>%
+    group_by(site = as.factor(site))%>%
+    inner_join(filter(loc, grepl(paste(c(y,z), collapse="|"), loc$`Site Name`)), by = "site")%>%
+    mutate(year = format(date, "%Y")) %>%
+    group_by(site,year) %>%
+    summarize(mean = mean(obs, na.rm = TRUE), median = median(obs, na.rm = TRUE),max = max(obs, na.rm = TRUE),min = min(obs, na.rm = TRUE) )
+  yearly.site
+}
+
+annual_stats(o3.filelist,"San","Santa")
+```
+
+
+#####12. Write a function to calculate the annual daily mean. Apply that function to Merced County. What is the annual daily mean of o3 for Merced County?
+
+```{r}
+annual_daily_mean <- function (x,y){
+  annual_daily_mean <- x %>%
+  inner_join(filter(loc, grepl(paste(c(y)), loc$'County Name')), by = "site") %>% 
+  mutate(year = format(date, "%Y")) %>%
+  group_by(year) %>% 
+  summarize(mean = mean(o3, na.rm = TRUE))
+annual_daily_mean 
+}
+
+annual_daily_mean(daily,"Merced")
+```
+
+
+
+
+

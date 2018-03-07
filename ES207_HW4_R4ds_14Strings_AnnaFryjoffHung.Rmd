@@ -1,0 +1,486 @@
+---
+title: "ES207 HW4 R4ds-Strings Anna Fryjoff-Hung"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+library(stringr)
+
+```
+
+### Exercises
+
+1.  In code that doesn't use stringr, you'll often see `paste()` and `paste0()`.
+    What's the difference between the two functions? What stringr function are
+    they equivalent to? How do the functions differ in their handling of 
+    `NA`?
+    
+paste() and paste0() both concatenate vectors after converting to character. paste0 concatenates strings without spaces slightly more efficiently because it does not need the argument sep specified.  They are equivalent to the stringr functions str_c.  
+
+paste() coerces NA_character_, the character missing value, to "NA".  In order to print a missing value as "NA" using stringr, the str_replace_na()
+    
+2.  In your own words, describe the difference between the `sep` and `collapse`
+    arguments to `str_c()`.
+    
+The sep argument inserts a seperator (for example a comma) within a string, while collapse collapses a series of strings into a single string with a designated seperator within the string. 
+
+3.  Use `str_length()` and `str_sub()` to extract the middle character from 
+    a string. What will you do if the string has an even number of characters?
+    
+```{r}
+x <- c("odd", "even")
+length <- str_length(x)
+middle <- ceiling(length/2)
+str_sub(x, middle, middle)
+```
+
+
+4.  What does `str_wrap()` do? When might you want to use it?
+
+str_wrap() wraps strings into nicely formatted paragraphs which can be helpful if you have a large amount of text in your code.  
+
+5.  What does `str_trim()` do? What's the opposite of `str_trim()`?
+
+str_trim() trims whitespace from start and end of string. str_pad() is the opposite of str_trim, adding whitespace to pad a string. 
+
+6.  Write a function that turns (e.g.) a vector `c("a", "b", "c")` into the string `a, b, and c`. Think carefully about what it should do if given a vector of length 0, 1, or 2.
+
+```{r}
+vec2str <- function(x, sep = ", ", last = ", and ") {
+  if (length(x) > 1) {
+    str_c(str_c(x[-length(x)], collapse = sep),
+                x[length(x)],
+                sep = last)
+  } else {
+    x
+  }
+}
+
+# vector length 0
+vec2str("")
+#vetctor length 1
+vec2str("a")
+#vector length 2
+vec2str(c("a", "b"))
+#vector length 3
+vec2str(c("a", "b", "c"))
+#vector length >3
+vec2str(c("a", "b", "c","d"))
+```
+
+
+#### Exercises
+
+1.  Explain why each of these strings don't match a `\`: `"\"`, `"\\"`, `"\\\"`.
+
+
+```{r}
+#"\" - is used an escape character, so you must use an additiona "\" to escape it, creating a regular expression ("\\").  In order to create the regular expression, you need to use a string ("\\\"), which also needs an escape, therefore you need "\\\\" to match '\'
+```
+
+2.  How would you match the sequence `"'\`?
+
+```{r}
+x = "\"'\\"
+writeLines(x)
+```
+
+
+3.  What patterns will the regular expression `\..\..\..` match? 
+    How would you represent it as a string?
+    
+```{r}
+x = "a.b.c.d"
+writeLines(x)
+str_view(x, "\\..\\..\\..")
+```
+
+
+#### Exercises
+
+1.  How would you match the literal string `"$^$"`?
+
+```{r}
+x = "test$^$test"
+writeLines(x)
+str_view(x, "\\$\\^\\$")
+```
+
+
+2.  Given the corpus of common words in `stringr::words`, create regular
+    expressions that find all words that:
+    
+  a. Start with "y".
+    
+```{r}
+str_view(words, "^y", match = T)
+```
+
+  b. End with "x"
+    
+```{r}
+str_view(words, "x$", match = T)
+```
+
+  c. Are exactly three letters long. (Don't cheat by using `str_length()`!)
+    
+```{r}
+str_view(words, "^...$", match = T)
+```
+    
+  d. Have seven letters or more.
+    
+```{r}
+str_view(words, ".......", match = T)
+```
+
+#### Exercises
+
+1.  Create regular expressions to find all words that:
+
+  a. Start with a vowel.
+    
+```{r}
+str_view(words, "^[aeiouy]", match = T)
+```
+
+
+  b. That only contain consonants. (Hint: thinking about matching 
+       "not"-vowels.)
+
+```{r}
+str_view(words, "[aeiouy]", match = F)
+```
+
+
+  c. End with `ed`, but not with `eed`.
+    
+```{r}
+str_view(stringr::words, "^ed$|[^e]ed$", match = TRUE)
+```
+
+    
+  d. End with `ing` or `ise`.
+    
+```{r}
+str_view(words, "i(ng|se)$", match = T)
+```
+
+    
+2.  Empirically verify the rule "i before e except after c".
+
+```{r}
+str_view(stringr::words, "(cei|[^c]ie)", match = TRUE)
+str_view(stringr::words, "(cie|[^c]ei)", match = TRUE)
+```
+
+
+3.  Is "q" always followed by a "u"?
+
+```{r}
+str_view(stringr::words, "qu", match = TRUE)
+str_view(stringr::words, "q[^u]", match = TRUE)
+```
+
+
+4.  Write a regular expression that matches a word if it's probably written
+    in British English, not American English.
+    
+```{r}
+str_view(words, "our$", match = T)
+```
+
+
+5.  Create a regular expression that will match telephone numbers as commonly
+    written in your country.
+    
+```{r}
+x <- c("1-800-867-8309", "2-800-867-8309")
+str_view(x, "^[1]-\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d")
+```
+
+#### Exercises
+
+1.  Describe the equivalents of `?`, `+`, `*` in `{m,n}` form.
+
+? - {,1}    
++ - {1,}     
+* - does not have {m.n} equivalent     
+
+2.  Describe in words what these regular expressions match:
+  
+    a. `^.*$` -  any string
+    b. `"\\{.+\\}"` - any string with curly braces around at least one character 
+    c. `\d{4}-\d{2}-\d{2}` - four digits hyphen two digits hyphen two digits
+    d. `"\\\\{4}"` - resolves to regular expression \4, which is \\\\
+
+3.  Create regular expressions to find all words that:
+
+  a. Start with three consonants.
+```{r}
+str_view(words, '^[^aeiou]{3}?', match = TRUE)
+```
+
+  b. Have three or more vowels in a row.
+```{r}
+str_view(words, '[aeiou]{3,}?', match = TRUE)
+```
+
+  c. Have two or more vowel-consonant pairs in a row.
+    
+```{r}
+str_view(words, "([aeouiy][^aeouiy]){2,}", match = T)
+```
+
+
+4.  Solve the beginner regexp crosswords at
+    <https://regexcrossword.com/challenges/beginner>.
+
+Player #40986     
+Puzzle:     
+1. H, E, L, P     
+2. B, O, B, E     
+3. O,  O, O, O     
+4. *, *, /, /     
+5. 1, 9, 8, 4     
+
+
+#### Exercises
+
+1.  Describe, in words, what these expressions will match:
+
+    a. `(.)\1\1` - the same character 3x in a row
+    b. `"(.)(.)\\2\\1"`- a character pair following by the pair in reverse order
+    c. `(..)\1` - any two repeated characters
+    d. `"(.).\\1.\\1"` - character followed by any character, the original character, any other character, and the original character again
+    e. `"(.)(.)(.).*\\3\\2\\1"` - three characters followed by zero or more characters of any kind followed by the same three characters in reverse order
+
+2.  Construct regular expressions to match words that:
+
+    a. Start and end with the same character.
+    
+```{r}
+str_view(words, "^(.).*\\1$", match = T)
+```
+
+    
+  b. Contain a repeated pair of letters
+       (e.g. "church" contains "ch" repeated twice.)
+       
+```{r}
+str_view(words, "(..).*\\1", match = T)
+```
+
+    
+  c. Contain one letter repeated in at least three places
+       (e.g. "eleven" contains three "e"s.)
+
+```{r}
+str_view(words, "(.).*\\1.*\\1", match = T)
+```
+
+### Exercises
+
+1.  For each of the following challenges, try solving it by using both a single regular expression, and a combination of multiple `str_detect()` calls.
+    
+  a.  Find all words that start or end with `x`.
+    
+```{r}
+str_view(words, "^x|x$", match = TRUE)
+words[str_detect(words, "^x|x$")]
+```
+
+    
+  b.  Find all words that start with a vowel and end with a consonant.
+    
+```{r}
+words[str_detect(words,"^[aieou].*[^aeiou]$")]
+start_vowel = str_detect(words, "^[aeuioy]")
+end_consonant = str_detect(words, "[^aeuioy]$")
+words[start_vowel & end_consonant]
+```
+
+    
+  c.  Are there any words that contain at least one of each different vowel?
+    
+```{r}
+words[str_detect(words, "a") &
+        str_detect(words, "e") &
+        str_detect(words, "i") &
+        str_detect(words, "o") &
+        str_detect(words, "u")]
+```
+There are no words in the words dataset that contain at least one of each different vowel 
+
+2.  What word has the highest number of vowels? What word has the highest proportion of vowels? (Hint: what is the denominator?)
+
+```{r}
+most_vowels <- str_count(words, "[aeiou]")
+words[which(most_vowels == max(most_vowels))]
+
+highprop_vowels<- str_count(words, "[aeiou]") / str_length(words)
+words[which(highprop_vowels == max(highprop_vowels))]
+```
+
+
+#### Exercises
+
+1.  In the previous example, you might have noticed that the regular
+    expression matched "flickered", which is not a color. Modify the 
+    regex to fix the problem.
+    
+```{r}
+colors <- c("red", "orange", "yellow", "green", "blue", "purple")
+color_match <- str_c(colors, collapse = "|")
+more <- sentences[str_count(sentences, color_match) > 1]
+str_view_all(more, color_match)
+```
+```{r}
+colors2 <- c("red", "orange", "yellow", "green", "blue", "purple")
+color_match2 <- str_c("\\b(", str_c(colors, collapse = "|"), ")\\b")
+more2 <- sentences[str_count(sentences, color_match2) > 1]
+str_view_all(more2, color_match2)
+```
+
+
+2.  From the Harvard sentences data, extract:
+
+  a. The first word from each sentence.
+    
+```{r}
+head(sentences)
+head(str_extract(sentences, "[^ ]+"))
+```
+
+  b. All words ending in `ing`.
+
+```{r}
+has_ing <- str_subset(sentences, "[^ ]+ing[ .]")
+str_extract(has_ing, "[^ ]+ing[ .]")
+```
+    
+
+  c. All plurals.
+
+```{r}
+is_noun <- str_subset(sentences, "(a|the) [^ \\.]+")
+nouns <- str_extract(is_noun, "(a|the) [^ \\.]+")
+is_plural <- str_subset(nouns, "(a|the) [^ \\.\\']+(s|\\')$")
+str_extract(is_plural, "(a|the) [^ \\.\\']+(s|\\')$")
+```
+
+
+#### Exercises
+
+1. Find all words that come after a "number" like "one", "two", "three" etc.
+   Pull out both the number and the word.
+   
+```{r}
+numbers = c("one", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
+numbers_match = str_c("(", str_c(numbers, collapse = "|"), ") [^ .]+")
+
+has_number <- str_subset(sentences, numbers_match)
+str_extract(has_number, numbers_match)
+```
+   
+
+2. Find all contractions. Separate out the pieces before and after the 
+   apostrophe.
+```{r}
+has_contraction = str_subset(sentences, "[^ ]+\\'[^ .]+")
+str_extract(has_contraction, "[^ ]+\\'[^ .]+")
+```
+
+
+#### Exercises
+
+1.   Replace all forward slashes in a string with backslashes.
+```{r}
+str = "slash/test/\\/string"
+writeLines(str)
+writeLines(str_replace_all(str, "/", "\\\\"))
+```
+
+
+2.   Implement a simple version of `str_to_lower()` using `replace_all()`.
+
+```{r}
+str="This Is A Test"
+str_replace_all(str, c("A" = "a", "I" = "i", "T" = "t"))
+```
+
+
+3.   Switch the first and last letters in `words`. Which of those strings
+     are still words?
+
+```{r}
+switched <- str_replace(words, "^(.)(.*)(.)$", "\\3\\2\\1")
+words[words %in% switched]
+```
+
+
+#### Exercises
+
+1.  Split up a string like `"apples, pears, and bananas"` into individual
+    components.
+    
+```{r}
+str = "apples, pears, and bananas"
+str_split(str, ", and |, ")
+```
+
+    
+2.  Why is it better to split up by `boundary("word")` than `" "`?
+
+Splitting by boundary("word") splits on punctuation and not just whitespace.
+
+3.  What does splitting with an empty string (`""`) do? Experiment, and
+    then read the documentation.
+    
+```{r}
+str_split("This is a test", "")
+```
+Splitting with an empty string splits the string into individual characters.
+
+### Exercises
+
+1.  How would you find all strings containing `\` with `regex()` vs.
+    with `fixed()`?
+    
+```{r}
+strings = c("test", "test\\", "te\\st")
+str_view(strings, regex("\\\\"))
+str_view(strings, fixed("\\"))
+```
+
+
+2.  What are the five most common words in `sentences`?
+```{r}
+str_extract_all(sentences, boundary("word")) %>%
+  unlist() %>%
+  str_to_lower() %>%
+  tibble() %>%
+  set_names("word") %>%
+  group_by(word) %>%
+  count(sort = TRUE) %>%
+  head(5)
+```
+
+
+### Exercises
+
+1.  Find the stringi functions that:
+
+    a. Count the number of words.     
+stri_count_words     
+    b. Find duplicated strings.     
+stri_duplicated     
+    c. Generate random text.     
+stri_rand_strings     
+
+2.  How do you control the language that `stri_sort()` uses for 
+    sorting?
+
+You control the language that stri_sort() uses by specifying a locale with a 2-3 letter abbreviated language code 
